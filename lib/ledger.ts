@@ -14,6 +14,7 @@ export type LedgerEntry = {
   receipt?: TelegraphReceipt;
   error?: string;
   attempts?: number; // routing retries used (1 = first ask succeeded)
+  route?: string; // "direct:slug" (pinned miner) or "router" (LLM router) — evidence transparency
 };
 
 export type Ledger = {
