@@ -49,26 +49,38 @@ and one receipt per claim.
 **Exchange** adds: `SMART_CONTRACT_AUDIT`, `TOKEN_HOLDER_COUNT`, `SOCIAL_BOT_DETECTION`, `ONCHAIN_METRIC_VERIFY` (token contract address in, listing risk memo out).
 **Stablecoin** reuses sanctions+registry and adds `FRAUD_RISK`, producing a **payment-attached compliance proof object** (the machine-readable Travel Rule thing).
 
-## Status (updated 26 Oct 2026)
+## Status (updated 26 Oct 2026 — post first-end-to-end)
 
 - [x] Live testnet network verified: 134 canonical intents, every one ≥ 8 miners (CRYPTO_PRICE 56, WEB_SEARCH 26 …)
 - [x] Full 15-mission data parsed from the hackathon site JS to pick the mission cluster
 - [x] Stack/cost/mission decisions locked
 - [x] `package.json` + npm install (next 15, react 19, @x402/*, viem, tsx types)
-- [ ] Burner wallet generated + funded (Circle faucet, 20 USDC/2h/addr)
-- [ ] **First live paid x402 call → capture a real `signal_hash`** ← next critical action
-- [ ] Legal dossier end-to-end + deployed to Vercel
-- [ ] Exchange stretch mission
-- [ ] Stablecoin stretch mission
-- [ ] README + demo video + submission pack (due 1 Dec 23:59 UTC)
+- [x] Burner wallet generated + funded (Circle faucet; **$19.94 USDC left**)
+- [x] **First live paid x402 call** → `evidence/first-call.json` (SANCTIONS_SCREENING_MATCH, $0.01, tx `0xdeedd7a8…`)
+- [x] **Legal dossier end-to-end** → `evidence/legal-run-clean.json` (verdict CLEAR, 5/5 receipts, $0.05)
+- [x] x402 v2 client API figured out; router retry; verdict false-positive fixes → **PR #8 open, awaiting user + Copilot review**
+- [ ] Legal PR merged to main ← blocked on user review of PR #8
+- [ ] Exchange stretch mission (issue #4)
+- [ ] Stablecoin stretch mission (issue #6)
+- [ ] Deploy to Vercel + judge-facing README (issue #3)
+- [ ] Nov 14 milestone evidence pack (issue #5)
+- [ ] README + demo video + submission pack (due 1 Dec 23:59 UTC, issue #7)
 
 ## Next actions (in order)
 
-1. `npm run new-wallet` → copy `TELEGRAPH_EVM_PRIVATE_KEY` into `.env.local` (gitignored).
-2. **GO TO** https://faucet.circle.com → paste the burner address → 20 USDC on **Base Sepolia**. (User step — reCAPTCHA. ~5 min.)
-3. `node scripts/smoke-test.mjs` → fires ONE real paid call and saves `signal_hash` + `X-TELEGRAPH-RECEIPT` to `evidence/first-call.json`. This is THE moment — after it works, everything else is plumbing.
-4. `npm run dev` → Legal dossier end-to-end, verify receipts render.
-5. Deploy to Vercel, then start the Exchange mission.
+1. **USER: review PR #8 with Copilot** → https://github.com/praneshnikhar/diligence-desk/pull/8 → merge.
+2. After merge: close issues #1 (setup/first call) + #2 (Legal e2e) with evidence comments.
+3. Exchange mission (issue #4): add 4 steps to `lib/intents.ts` (ticker lookup, order-book depth,
+   price-deviation vs CEX, reserve attestation), new verdict cases in `lib/verdict.ts`, test tab.
+4. Stablecoin mission (issue #6): peg/deviation check steps.
+5. Known bug to file: FACT_CHECK misroutes to niche academic miner ("Crossref Space Claim") →
+   lands on honest `review`. Fix via sharper claim phrasing in `lib/intents.ts`.
+
+## Session rules
+
+- **PR workflow from now on** (user reviews each PR with Copilot before merge — do not push to main
+  directly, do not close issues until after merge).
+- End every session: update this Status + Next actions, commit, push to the PR branch.
 
 ## Gotchas (learned or verified today)
 
