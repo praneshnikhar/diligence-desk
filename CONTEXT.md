@@ -49,32 +49,30 @@ and one receipt per claim.
 **Exchange** adds: `SMART_CONTRACT_AUDIT`, `TOKEN_HOLDER_COUNT`, `SOCIAL_BOT_DETECTION`, `ONCHAIN_METRIC_VERIFY` (token contract address in, listing risk memo out).
 **Stablecoin** reuses sanctions+registry and adds `FRAUD_RISK`, producing a **payment-attached compliance proof object** (the machine-readable Travel Rule thing).
 
-## Status (updated 26 Oct 2026 — post first-end-to-end)
+## Status (updated 26 Oct 2026 — all 3 missions end-to-end)
 
-- [x] Live testnet network verified: 134 canonical intents, every one ≥ 8 miners (CRYPTO_PRICE 56, WEB_SEARCH 26 …)
-- [x] Full 15-mission data parsed from the hackathon site JS to pick the mission cluster
-- [x] Stack/cost/mission decisions locked
-- [x] `package.json` + npm install (next 15, react 19, @x402/*, viem, tsx types)
-- [x] Burner wallet generated + funded (Circle faucet; **$19.94 USDC left**)
-- [x] **First live paid x402 call** → `evidence/first-call.json` (SANCTIONS_SCREENING_MATCH, $0.01, tx `0xdeedd7a8…`)
-- [x] **Legal dossier end-to-end** → `evidence/legal-run-clean.json` (verdict CLEAR, 5/5 receipts, $0.05)
-- [x] x402 v2 client API figured out; router retry; verdict false-positive fixes → **PR #8 open, awaiting user + Copilot review**
-- [ ] Legal PR merged to main ← blocked on user review of PR #8
-- [ ] Exchange stretch mission (issue #4)
-- [ ] Stablecoin stretch mission (issue #6)
+- [x] Live testnet network verified: 134 canonical intents, every one ≥ 8 miners
+- [x] Burner wallet funded (faucet.circle.com; **~$19.55 USDC left** — total demo spend ~$0.22)
+- [x] First live paid x402 call → `evidence/first-call.json`
+- [x] **Legal dossier end-to-end** → CLEAR, 5 receipts → **PR #8 merged**
+- [x] **Exchange mission end-to-end** → CLEAR, 3 receipts (all direct specialists) → **PR #10 open**
+- [x] **Stablecoin mission end-to-end** → BLOCK (fraud 75%), 4 receipts → **PR #10 open**
+- [x] Direct-ask adapter architecture: free discovery → structured specialist asks → router fallback
+- [ ] PR #10 merged ← awaiting user + Copilot review
 - [ ] Deploy to Vercel + judge-facing README (issue #3)
 - [ ] Nov 14 milestone evidence pack (issue #5)
 - [ ] README + demo video + submission pack (due 1 Dec 23:59 UTC, issue #7)
+- [ ] Known: FACT_CHECK misroute (#9, lands on honest review); ChainSight lacks USDC proof-of-reserves
 
 ## Next actions (in order)
 
-1. **USER: review PR #8 with Copilot** → https://github.com/praneshnikhar/diligence-desk/pull/8 → merge.
-2. After merge: close issues #1 (setup/first call) + #2 (Legal e2e) with evidence comments.
-3. Exchange mission (issue #4): add 4 steps to `lib/intents.ts` (ticker lookup, order-book depth,
-   price-deviation vs CEX, reserve attestation), new verdict cases in `lib/verdict.ts`, test tab.
-4. Stablecoin mission (issue #6): peg/deviation check steps.
-5. Known bug to file: FACT_CHECK misroutes to niche academic miner ("Crossref Space Claim") →
-   lands on honest `review`. Fix via sharper claim phrasing in `lib/intents.ts`.
+1. **USER: review PR #10 with Copilot** → https://github.com/praneshnikhar/diligence-desk/pull/10 → merge → close #4 + #6.
+2. Deploy to Vercel (issue #3): hobby tier, `TELEGRAPH_EVM_PRIVATE_KEY` + `TELEGRAPH_NODE_URL` as env
+   vars, then judge-facing README with evidence table + demo GIF.
+3. UI polish: badge on each step showing `route: direct:slug` vs `router` (data already in ledger).
+4. Nov 14 milestone evidence pack (issue #5): screenshots + receipt links + PDF export of a dossier.
+5. Demo video + 5 commercial answers + submission (issue #7) — before 1 Dec 23:59 UTC.
+6. Re-run flagship demo ON/AFTER Nov 1 — evidence from the event period matters for scoring.
 
 ## Session rules
 
@@ -87,14 +85,22 @@ and one receipt per claim.
 - `@x402/*` needs Node ≥ 20 (`Crypto API not available` on 18) — we're on 24, fine.
 - x402 `exact` scheme: the **PayAI facilitator submits the transfer**, payer signs an EIP-3009
   authorization → **no Base Sepolia ETH needed**. Escrow / ERC-8183 rails DO need gas — avoid.
+- x402 v2 (2.28) client API: `new x402Client().register("eip155:84532", new ExactEvmScheme(toClientEvmSigner(account)))`
+  — pass the viem **LocalAccount** directly; a WalletClient lacks `.address` and breaks payload building.
+- **Direct miner-ask protocol**: `POST /engine/v1/ask/{minerId}` with `{query, method, endpoint, payload}` —
+  a bare `{query}` 400s (`AskSubnetRequest.Method required`). 400/404 = free. Payload schemas come from
+  the free `/api/miners` discovery (`input_schema`, `endpoints`). Schemas are per-miner, sometimes wrong
+  (ChainSight /supply wants `symbol`, not `address`) — verify by probing, 400s cost nothing.
 - Failed calls are **not charged** (settle only on 2xx). Discovery endpoints are free:
-  `GET /api/miners`, `GET /engine/v1/intents`, `GET /engine/v1/signal/{hash}`.
-- Auto-route may misclassify the intent → always check the returned `intent` field; re-phrase or
-  fall back to direct `POST /engine/v1/ask/{minerId}` if wrong. Never trust hard-coded miner IDs.
-- `resource.url` inside a 402 body omits the `/engine` prefix — always retry the URL YOU requested.
-- Most intents have 0 results from LLM parsing — the raw `result` block is what we render. There is
-  no `parsed` field for judgment-type intents, only `result`.
-- The x402 pricing the 402 challenge quotes may be above the floor multiplier (demand pricing). Cap the per-run spend regardless.
+  `GET /api/miners`, `GET /engine/v1/intents`, `GET /engine/v1/intents/{intent}/miners`, `GET /engine/v1/signal/{hash}`.
+- The LLM router misroutes generic-word intents ("audit" → academic papers). Never route what you can
+  pin; the router is the fallback, not the plan.
+- Miner outputs echo query text into JSON — keyword regexes false-positive on our own prompts and on
+  NEGATIVE fields (`"honeypot_with_same_creator":"0"`). Decide on structure first, regex second.
+- The engine reflects current list reality: Tornado Cash → `on_list: 0` (delisted Mar 2025) while the
+  fraud miner still flags mixer payments. Fresh lists beat stale lore — a demo strength.
+- Miner quality varies; always surface raw excerpts + reasoning next to the verdict for human review.
+- Resource URL inside a 402 body omits the `/engine` prefix — always retry the URL YOU requested.
 
 ## Pointers
 
