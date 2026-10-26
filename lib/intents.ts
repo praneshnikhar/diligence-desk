@@ -75,7 +75,7 @@ export const MISSIONS: Record<Mission["slug"], Mission> = {
         intent: "FACT_CHECK",
         label: "Claim verification",
         build: (i) =>
-          `Fact-check this claim with supporting evidence: "The company ${i.company} is a legitimate operating business with no history of fraud, enforcement action or regulatory censure." Report whether the claim is supported, contradicted or unverified.`,
+          `Fact-check this claim with evidence: "The company ${i.company} is an operating business that develops and sells products or services." Report supported, contradicted or unverified.`,
       },
     ],
   },

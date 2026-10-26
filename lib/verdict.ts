@@ -23,6 +23,14 @@ function flagRules(stepKey: string, text: string): StepStatus {
       if (hit || hasScore) return "flag";
       return "review";
     }
+    case "factcheck": {
+      // FactWire-style short verdict. Structural field check first.
+      const contradict = /"(verdict|answer|result)"\s*:\s*"[^"]*(false|contradicted|misleading|incorrect|unfounded|debunked)/i.test(t);
+      const support = /"(verdict|answer|result)"\s*:\s*"[^"]*(true|supported|correct|accurate|verified)/i.test(t);
+      if (contradict) return "flag";
+      if (support) return "clear";
+      return "review";
+    }
     case "registry": {
       const active = /(active|registered|incorporat(ed|ion)|status\s*[:=]?\s*(active|live|in_good_standing|good))/i.test(t);
       const notFound = POSITIVE_NO.test(t) || /no record|could not (find|locate)|no such (entity|company)/i.test(t);

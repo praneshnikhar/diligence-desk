@@ -193,7 +193,7 @@ export type RunInput = Record<string, string>;
  * with published schemas. Payloads are filled from run input — no LLM in the purchase path.
  * Always verified against live discovery before use.
  */
-const DIRECT: Record<string, Array<{ slug: string; req: (i: RunInput) => DirectReq }>> = {
+const DIRECT: Record<string, Array<{ slug: string; req: (i: RunInput, query: string) => DirectReq }>> = {
   SMART_CONTRACT_AUDIT: [
     {
       slug: "goplus-security",
@@ -218,6 +218,10 @@ const DIRECT: Record<string, Array<{ slug: string; req: (i: RunInput) => DirectR
     { slug: "san-ofac-entity", req: (i) => ({ method: "GET", endpoint: "/query", payload: { entity: i.payee ?? i.company } }) },
     { slug: "san-un-list", req: (i) => ({ method: "GET", endpoint: "/query", payload: { entity: i.payee ?? i.company } }) },
   ],
+  FACT_CHECK: [
+    // The miner reads the claim from the whole question verbatim (per its schema).
+    { slug: "factwire-fact-check", req: (_i, query) => ({ method: "GET", endpoint: "/fact-check", payload: { claim: query } }) },
+  ],
 };
 
 export type SmartAsk = { call: TelegraphCall; route: string; attempts: number };
@@ -235,7 +239,7 @@ export async function telegraphAskSmart(query: string, intent: string, input: Ru
     for (const a of adapters) {
       const m = live.find((x) => x.slug === a.slug);
       if (!m) continue;
-      const call = await telegraphAsk(query, m.id, a.req(input));
+      const call = await telegraphAsk(query, m.id, a.req(input, query));
       if (!call.error || call.signalHash) {
         return { call, route: `direct:${a.slug}`, attempts: 1 };
       }
