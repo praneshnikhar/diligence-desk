@@ -89,6 +89,7 @@ export const MISSIONS: Record<Mission["slug"], Mission> = {
     outcome: "A signed listing risk memo with a cost line",
     fields: [
       { name: "contract", label: "Token contract address", placeholder: "0x…", required: true },
+      { name: "symbol", label: "Token ticker", placeholder: "e.g. USDC", required: true },
       { name: "wallet", label: "Treasury / creator wallet (optional)", placeholder: "0x…" },
       { name: "social", label: "Project X / Twitter handle (optional)", placeholder: "@project" },
     ],
@@ -98,14 +99,14 @@ export const MISSIONS: Record<Mission["slug"], Mission> = {
         intent: "SMART_CONTRACT_AUDIT",
         label: "Contract audit",
         build: (i) =>
-          `Inspect the smart contract at ${i.contract} for reentrancy, access control, integer overflow, hidden mint or blacklisting powers, and drainer or honeypot patterns. Summarise findings and severity.`,
+          `Token contract ${i.contract} on Base: inspect it for reentrancy, access control, integer overflow, hidden mint or blacklisting powers, and drainer or honeypot patterns. Summarise findings with severity.`,
       },
       {
         key: "holders",
         intent: "TOKEN_HOLDER_COUNT",
         label: "Holder concentration",
         build: (i) =>
-          `For token ${i.contract}: how many distinct addresses hold it, what does the distribution look like, and what share do the top 10 holders control? Report the numbers.`,
+          `Token ${i.contract} on Base: how many distinct addresses hold it, what does the distribution look like, and what share do the top 10 holders control? Report the numbers.`,
       },
       {
         key: "social",
@@ -128,7 +129,7 @@ export const MISSIONS: Record<Mission["slug"], Mission> = {
         intent: "ONCHAIN_METRIC_VERIFY",
         label: "On-chain sanity",
         build: (i) =>
-          `Verify on-chain facts for token contract ${i.contract}: total supply, decimals, LP presence if identifiable, and whether the contract is verified / source published. Report exact values.`,
+          `Token contract ${i.contract} on Base: verify total supply, decimals, LP presence if identifiable, and whether the contract is verified / source published. Report exact values.`,
       },
     ],
   },
@@ -148,6 +149,7 @@ export const MISSIONS: Record<Mission["slug"], Mission> = {
         label: "Payee wallet (optional — enables sanctions pass)",
         placeholder: "0x…",
       },
+      { name: "token", label: "Payment token ticker (optional — enables reserve attestation)", placeholder: "USDC" },
     ],
     steps: [
       {
@@ -171,6 +173,14 @@ export const MISSIONS: Record<Mission["slug"], Mission> = {
         label: "Payment fraud risk",
         build: (i) =>
           `Score the fraud risk of a payment of $${i.amount} USD to counterparty "${i.payee}". Consider counterparty type, amount velocity patterns typical of fraud and any known red flag categories. Return a probability estimate with reasoning.`,
+      },
+      {
+        key: "reserve",
+        intent: "ASSET_RESERVE_ATTESTATION",
+        label: "Reserve attestation",
+        requires: "token",
+        build: (i) =>
+          `Provide the reserve attestation for the stablecoin ${i.token}: what backs it, current reserves vs circulating supply, and the latest attestation or audit date.`,
       },
     ],
   },

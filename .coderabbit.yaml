@@ -1,0 +1,54 @@
+# CodeRabbit — PR review config
+# Docs: https://docs.coderabbit.ai/reference/configuration-template
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  assess_links: true
+  related_issues: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  # Don't burn review bandwidth on generated/vendor/big artifacts
+  path_filters:
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!evidence/**"
+    - "!package-lock.json"
+  path_instructions:
+    - path: "lib/telegraph.ts"
+      instructions: >-
+        This is the x402 paid-call layer — the ONLY file that may touch TELEGRAPH_EVM_PRIVATE_KEY.
+        Flag anything that could double-pay (retries after a settled call, re-fires after a signal hash
+        exists), leak the key into client-importable code, or hardcode payTo addresses (they must be
+        read from the 402 challenge's accepts[].payTo).
+    - path: "app/api/**"
+      instructions: >-
+        Server routes orchestrate paid engine calls. Flag: missing spend-guard checks (lib/limits),
+        unvalidated input reaching query builders, secrets in responses, and any pattern that lets
+        lib/telegraph be imported into client components.
+    - path: "lib/verdict.ts"
+      instructions: >-
+        Deterministic screening heuristics over raw miner JSON — no LLM in the loop, by design.
+        Miner outputs ECHO the query text and contain NEGATIVE fields (e.g. "honeypot_with_same_creator":"0").
+        Flag any keyword regex that could match echoed query words or negative-valued fields; structural
+        signals (named JSON fields) must be checked before regexes.
+    - path: "lib/intents.ts"
+      instructions: >-
+        Mission step definitions whose build() strings become PAID queries. Flag phrasing that could
+        route ambiguously (the fallback LLM router misroutes generic-word queries) or that omits the
+        concrete identifier (address/ticker) the miner needs.
+    - path: "scripts/*.mjs"
+      instructions: >-
+        These scripts spend real (testnet) USDC per call. Flag unbounded loops, missing spend caps,
+        and private-key printing.
+    - path: "app/page.tsx"
+      instructions: >-
+        Client component. Flag anything that would break if a step has no call (error paths), or that
+        renders miner data as HTML without escaping.
+chat:
+  auto_reply: true

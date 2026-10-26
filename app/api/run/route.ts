@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MISSIONS, Mission } from "@/lib/intents";
 import { LIMITS, assertCanProceed } from "@/lib/limits";
-import { telegraphAskWithRetry, ENGINE_URL } from "@/lib/telegraph";
+import { telegraphAskSmart, ENGINE_URL } from "@/lib/telegraph";
 import { newLedger, addToLedger, ledgerSummary, Ledger } from "@/lib/ledger";
 import { assessStep, summarize, VERDICT_DISCLAIMER } from "@/lib/verdict";
 import { privateKeyToAccount } from "viem/accounts";
@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
     plan.map(async (step) => {
       assertCanProceed(ledger.totalCalls, ledger.totalSpentUsd); // throw if over budget
       const query = step.build(input);
-      const { call, attempts } = await telegraphAskWithRetry(query, step.intent);
+      const { call, attempts, route } = await telegraphAskSmart(query, step.intent, input);
       if (call.error) {
-        addToLedger(ledger, { key: step.key, intent: step.intent, error: call.error, attempts });
-        return { step, call, assessed: null, skippedReason: undefined as string | undefined };
+        addToLedger(ledger, { key: step.key, intent: step.intent, error: call.error, attempts, route });
+        return { step, call, assessed: null, route, skippedReason: undefined as string | undefined };
       }
       // Spending guard after the fact (a paid call returned): verify within limits.
       if ((call.costUsd ?? 0) > perCallCeiling) {
@@ -78,8 +78,9 @@ export async function POST(req: NextRequest) {
         signalHash: call.signalHash,
         receipt: call.receipt,
         attempts,
+        route,
       });
-      return { step, call, assessed, skippedReason: undefined as string | undefined };
+      return { step, call, assessed, route, skippedReason: undefined as string | undefined };
     })
   );
 
@@ -95,11 +96,12 @@ export async function POST(req: NextRequest) {
         status: "error",
         excerpt: overBudget ? "(skipped: per-run budget already allocated)" : "(call failed)",
         error: reason,
+        route: "aborted",
         skippedReason: overBudget ? reason : undefined,
         call: null,
       };
     }
-    const { step: _s, call, assessed, skippedReason } = r.value;
+    const { step: _s, call, assessed, skippedReason, route } = r.value;
     return {
       key: step.key,
       label: step.label,
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
       status: assessed?.status ?? "error",
       excerpt: assessed?.excerpt ?? call?.error ?? "(no result)",
       skippedReason,
+      route,
       call: call
         ? {
             raw: call.raw,

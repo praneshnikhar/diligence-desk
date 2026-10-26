@@ -77,13 +77,15 @@ function decodeReceipt(res: Response): TelegraphReceipt | undefined {
 
 // ---------- calls ----------
 
-/** Auto-routed paid ask: POST /engine/v1/ask — Engine's LLM router picks the miner. */
-export async function telegraphAsk(query: string): Promise<TelegraphCall> {
+/** Paid ask. Router picks the miner by default; pin one with minerId, optionally sending a structured request. */
+export async function telegraphAsk(query: string, minerId?: string, direct?: DirectReq): Promise<TelegraphCall> {
   const paid = await getPaidFetch();
-  const res = await paid(`${ENGINE_URL}/v1/ask`, {
+  const url = minerId ? `${ENGINE_URL}/v1/ask/${minerId}` : `${ENGINE_URL}/v1/ask`;
+  const body = direct ? { query, ...direct } : { query };
+  const res = await paid(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(body),
   });
   const receipt = decodeReceipt(res);
   const text = await res.text();
@@ -132,6 +134,16 @@ const INTENT_HINTS: Record<string, string> = {
     "Route by intent: queries statutory regulatory filings and financial oversight disclosures.",
   WEB_SEARCH: "Route by intent: needs live web search results.",
   FACT_CHECK: "Route by intent: fact-checks a specific claim with evidence.",
+  SMART_CONTRACT_AUDIT:
+    "Route by intent: inspects a smart contract at a stated address for vulnerabilities and honeypot patterns.",
+  TOKEN_HOLDER_COUNT:
+    "Route by intent: names a token contract address and asks how many distinct addresses hold it.",
+  ONCHAIN_METRIC_VERIFY:
+    "Route by intent: reads a specific on-chain value (supply, balance, contract status) at latest block.",
+  SOCIAL_BOT_DETECTION:
+    "Route by intent: asks whether a named social account shows automated or coordinated behaviour.",
+  ASSET_RESERVE_ATTESTATION:
+    "Route by intent: asks for proof-of-reserves or reserve attestation backing a stablecoin or tokenized asset.",
 };
 
 export async function telegraphAskWithRetry(
@@ -148,6 +160,95 @@ export async function telegraphAskWithRetry(
     }
   }
   return { call, attempts: 1 };
+}
+
+// ---------- direct-ask strategy (free discovery → pinned miners → router fallback) ----------
+
+type MinerRef = { id: string; slug: string; name: string; description?: string };
+
+const minerCache = new Map<string, { at: number; miners: MinerRef[] }>();
+const MINER_CACHE_MS = 10 * 60 * 1000;
+
+/** Free discovery: which miners serve an intent right now (cached, so a run costs nothing extra). */
+export async function minersForIntent(intent: string): Promise<MinerRef[]> {
+  const hit = minerCache.get(intent);
+  if (hit && Date.now() - hit.at < MINER_CACHE_MS) return hit.miners;
+  try {
+    const res = await fetch(`${ENGINE_URL}/v1/intents/${encodeURIComponent(intent)}/miners`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const miners = ((Array.isArray(data) ? data : data?.miners ?? []) as MinerRef[]).filter((m) => m?.id);
+    minerCache.set(intent, { at: Date.now(), miners });
+    return miners;
+  } catch {
+    return [];
+  }
+}
+
+export type DirectReq = { method: string; endpoint: string; payload: Record<string, unknown> };
+export type RunInput = Record<string, string>;
+
+/**
+ * Deterministic structured adapters: per intent, an ordered list of specialist miners
+ * with published schemas. Payloads are filled from run input — no LLM in the purchase path.
+ * Always verified against live discovery before use.
+ */
+const DIRECT: Record<string, Array<{ slug: string; req: (i: RunInput) => DirectReq }>> = {
+  SMART_CONTRACT_AUDIT: [
+    {
+      slug: "goplus-security",
+      req: (i) => ({ method: "GET", endpoint: "/token-security", payload: { chain_id: "8453", contract_addresses: i.contract } }),
+    },
+    {
+      slug: "chainsight-oracle",
+      req: (i) => ({ method: "GET", endpoint: "/scaudit", payload: { address: i.contract, chain: "base" } }),
+    },
+  ],
+  TOKEN_HOLDER_COUNT: [
+    { slug: "txlens", req: (i) => ({ method: "GET", endpoint: "/token-holders", payload: { token: i.contract, chain: "base" } }) },
+    { slug: "chainsight-oracle", req: (i) => ({ method: "GET", endpoint: "/holders", payload: { address: i.contract, chain: "base" } }) },
+  ],
+  ONCHAIN_METRIC_VERIFY: [
+    { slug: "chainsight-oracle", req: (i) => ({ method: "POST", endpoint: "/supply", payload: { symbol: i.symbol, chain: "base" } }) },
+  ],
+  ASSET_RESERVE_ATTESTATION: [
+    { slug: "chainsight-oracle", req: (i) => ({ method: "GET", endpoint: "/assetreserve", payload: { symbol: i.symbol ?? "USDC", chain: "base" } }) },
+  ],
+  SANCTIONS_SCREENING_MATCH: [
+    { slug: "san-ofac-entity", req: (i) => ({ method: "GET", endpoint: "/query", payload: { entity: i.payee ?? i.company } }) },
+    { slug: "san-un-list", req: (i) => ({ method: "GET", endpoint: "/query", payload: { entity: i.payee ?? i.company } }) },
+  ],
+};
+
+export type SmartAsk = { call: TelegraphCall; route: string; attempts: number };
+
+/**
+ * Purchase strategy: deterministic structured asks to the best live specialist first,
+ * the Engine router (with retry) only as fallback. A settled-but-errored call is returned
+ * as-is — never re-paid. Failed free attempts are preserved in the ledger error text.
+ */
+export async function telegraphAskSmart(query: string, intent: string, input: RunInput): Promise<SmartAsk> {
+  const adapters = DIRECT[intent];
+  if (adapters?.length) {
+    const live = await minersForIntent(intent);
+    const failures: string[] = [];
+    for (const a of adapters) {
+      const m = live.find((x) => x.slug === a.slug);
+      if (!m) continue;
+      const call = await telegraphAsk(query, m.id, a.req(input));
+      if (!call.error || call.signalHash) {
+        return { call, route: `direct:${a.slug}`, attempts: 1 };
+      }
+      failures.push(`${a.slug}: ${call.error.slice(0, 120)}`);
+    }
+    if (failures.length) {
+      const fb = await telegraphAskWithRetry(query, intent);
+      if (fb.call.error) fb.call.error += ` [direct attempts failed: ${failures.join(" | ")}]`;
+      return { call: fb.call, route: "router", attempts: fb.attempts };
+    }
+  }
+  const fb = await telegraphAskWithRetry(query, intent);
+  return { call: fb.call, route: "router", attempts: fb.attempts };
 }
 
 /** Free lookup of any past call by its signal hash. */
