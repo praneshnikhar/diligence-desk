@@ -55,7 +55,7 @@ export default function Page() {
   const [tick, setTick] = useState(0);
   const [dossier, setDossier] = useState<Dossier | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [wallet, setWallet] = useState<{ address: string; usdc: string | null; explorer: string } | null>(null);
+  const [wallet, setWallet] = useState<{ address: string; usdc: string | null; network?: string; explorer: string } | null>(null);
 
   const mission = MISSIONS[missionSlug];
 

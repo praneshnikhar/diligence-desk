@@ -30,13 +30,18 @@ export async function GET() {
   let usdc: string | null = null;
   let eth: string | null = null;
   try {
-    const bal = await client.readContract({ address: USDC, abi: ABI, functionName: "balanceOf", args: [address] });
+    const bal = await client.readContract({
+      address: USDC,
+      abi: ABI,
+      functionName: "balanceOf",
+      args: [address as `0x${string}`],
+    });
     usdc = formatUnits(bal, 6);
   } catch {
     usdc = null;
   }
   try {
-    const b = await client.getBalance({ address });
+    const b = await client.getBalance({ address: address as `0x${string}` });
     eth = formatUnits(b, 18);
   } catch {
     eth = null;

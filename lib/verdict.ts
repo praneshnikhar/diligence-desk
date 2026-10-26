@@ -4,7 +4,8 @@
 export type StepStatus = "clear" | "flag" | "review" | "error" | "unknown";
 export type Verdict = "CLEAR" | "REVIEW" | "BLOCK" | "INCOMPLETE";
 
-const POSITIVE_NO = /no (match|matches|hits|hit|listing|record|adverse|findings?)|not (listed|found|sanctioned)|zero (matches|hits)|clean/i;
+const POSITIVE_NO =
+  /no (sec )?(registrant|record|match(es)?|hits?|listing|finding|adverse)|none (were )?found|not (listed|found|registered|sanctioned)|zero (matches|hits)|clean|"nbHits"\s*:\s*0|"hits"\s*:\s*\[\s*\]/i;
 
 function flagRules(stepKey: string, text: string): StepStatus {
   const t = text.slice(0, 4000);
@@ -26,9 +27,11 @@ function flagRules(stepKey: string, text: string): StepStatus {
       return "review";
     }
     case "news": {
+      // Structural check first: zero search hits beats any keyword regex (queries echo adverse terms into the JSON).
+      // Covers both object responses ("nbHits":0 / "hits":[]) and miners that return a bare empty array.
+      if (/^\s*\[\s*\]\s*$/.test(t) || /"nbHits"\s*:\s*0|"hits"\s*:\s*\[\s*\]/.test(t) || POSITIVE_NO.test(t)) return "clear";
       const adverse = /(fraud|lawsuit|litigation|enforcement|indict|settlement|winding[- ]?up|insolvency|ponzi|probe|investigat)/i.test(t);
       if (adverse) return "flag";
-      if (POSITIVE_NO.test(t)) return "clear";
       return "review";
     }
     case "audit": {
@@ -51,7 +54,7 @@ export function assessStep(stepKey: string, rawResult: string): { status: StepSt
   return { status, excerpt };
 }
 
-export function summarize(statuses: StepStatus[]): { verdict: Verdict; confidence: string } {
+export function summarize(statuses: Array<string | StepStatus>): { verdict: Verdict; confidence: string } {
   let stepStatuses = [...statuses];
   if (stepStatuses.every((s) => s === "error" || s === "unknown")) {
     return { verdict: "INCOMPLETE", confidence: "no usable answers" };
