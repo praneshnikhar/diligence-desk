@@ -58,15 +58,18 @@ and one receipt per claim.
 - [x] **Exchange mission end-to-end** → CLEAR, 3 receipts (all direct specialists) → **PR #10 open**
 - [x] **Stablecoin mission end-to-end** → BLOCK (fraud 75%), 4 receipts → **PR #10 open**
 - [x] Direct-ask adapter architecture: free discovery → structured specialist asks → router fallback
-- [ ] PR #10 merged ← awaiting user + Copilot review
+- [x] PR #10 merged; PR #11 open (FACT_CHECK → FactWire direct adapter + stale-lore-safe claim)
+- [ ] PR #11 merged ← awaiting user + Copilot review
 - [ ] Deploy to Vercel + judge-facing README (issue #3)
 - [ ] Nov 14 milestone evidence pack (issue #5)
 - [ ] README + demo video + submission pack (due 1 Dec 23:59 UTC, issue #7)
-- [ ] Known: FACT_CHECK misroute (#9, lands on honest review); ChainSight lacks USDC proof-of-reserves
+- [ ] Known: ChainSight lacks USDC proof-of-reserves (reserve step = honest review); LLM fact-checkers
+  can cite annulled/enforcement-obsolete history (mitigated: fact-check claims are present-tense
+  legitimacy checks; fresh enforcement news is the WEB_SEARCH step's job)
 
 ## Next actions (in order)
 
-1. **USER: review PR #10 with Copilot** → https://github.com/praneshnikhar/diligence-desk/pull/10 → merge → close #4 + #6.
+1. **USER: review PR #11 with Copilot/CodeRabbit** → https://github.com/praneshnikhar/diligence-desk/pull/11 → merge (closes #9).
 2. Deploy to Vercel (issue #3): hobby tier, `TELEGRAPH_EVM_PRIVATE_KEY` + `TELEGRAPH_NODE_URL` as env
    vars, then judge-facing README with evidence table + demo GIF.
 3. UI polish: badge on each step showing `route: direct:slug` vs `router` (data already in ledger).
