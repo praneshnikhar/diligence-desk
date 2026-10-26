@@ -7,7 +7,7 @@ One input → the agent fires several **paid** information requests in parallel 
 per request over **x402** (HTTP-native USDC micropayments) → a signed **diligence dossier**
 with a verdict, one on-chain receipt per claim, and a cost line.
 
-> **Try it:** paste a company name, press `$ Run — ≈ $0.05`. Every claim in the result card
+> **Try it live:** **https://diligence-desk-chi.vercel.app** — paste a company name, press `$ Run — ≈ $0.05`. Every claim in the result card
 > carries its `signal_hash` — click *verify* to fetch the exact evidence the node settled on-chain.
 
 | | |

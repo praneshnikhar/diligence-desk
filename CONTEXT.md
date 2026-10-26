@@ -49,29 +49,28 @@ and one receipt per claim.
 **Exchange** adds: `SMART_CONTRACT_AUDIT`, `TOKEN_HOLDER_COUNT`, `SOCIAL_BOT_DETECTION`, `ONCHAIN_METRIC_VERIFY` (token contract address in, listing risk memo out).
 **Stablecoin** reuses sanctions+registry and adds `FRAUD_RISK`, producing a **payment-attached compliance proof object** (the machine-readable Travel Rule thing).
 
-## Status (updated 26 Oct 2026 — all 3 missions end-to-end)
+## Status (updated 27 Oct 2026 — deployed, all missions live)
 
-- [x] Live testnet network verified: 134 canonical intents, every one ≥ 8 miners
-- [x] Burner wallet funded (faucet.circle.com; **~$19.55 USDC left** — total demo spend ~$0.22)
-- [x] First live paid x402 call → `evidence/first-call.json`
-- [x] **Legal dossier end-to-end** → CLEAR, 5 receipts → **PR #8 merged**
-- [x] **Exchange mission end-to-end** → CLEAR, 3 receipts (all direct specialists) → **PR #10 open**
-- [x] **Stablecoin mission end-to-end** → BLOCK (fraud 75%), 4 receipts → **PR #10 open**
-- [x] Direct-ask adapter architecture: free discovery → structured specialist asks → router fallback
-- [x] PR #10 merged; PR #11 open (FACT_CHECK → FactWire direct adapter + stale-lore-safe claim)
-- [ ] PR #11 merged ← awaiting user + Copilot review
-- [ ] Deploy to Vercel + judge-facing README (issue #3)
-- [ ] Nov 14 milestone evidence pack (issue #5)
-- [ ] README + demo video + submission pack (due 1 Dec 23:59 UTC, issue #7)
-- [ ] Known: ChainSight lacks USDC proof-of-reserves (reserve step = honest review); LLM fact-checkers
-  can cite annulled/enforcement-obsolete history (mitigated: fact-check claims are present-tense
-  legitimacy checks; fresh enforcement news is the WEB_SEARCH step's job)
+- [x] All 5 PRs merged (#8 Legal, #10 Exchange+Stablecoin, #11 FactWire, #12 dashboard, #13 README)
+- [x] **Deployed to Vercel production: https://diligence-desk-chi.vercel.app** (public, auth disabled, wallet API verified live)
+- [x] Vercel agent setup: CLI 65.3.1 global + vercel-plugin (30+ skills) + MCP in OpenCode config (user auth via /mcps pending)
+- [x] Next.js 15.5.4 → 15.5.28 (Vercel blocks vulnerable versions)
+- [ ] **PR #14 (this one): live-URL stamp in README + CONTEXT.md** ← user merges
+- [ ] Nov 14 milestone evidence pack (issue #5): screenshots ✓ (docs/screenshots), receipts ✓ (evidence/), live URL ✓ — assemble PDF dossier export + receipt links into a submission post
+- [ ] Demo video + 5 commercial answers + submission pack (issue #7, due 1 Dec 23:59 UTC)
+- [ ] Re-run flagship demo ON/AFTER Nov 1 (event-period evidence matters for scoring)
+- [ ] Wallet: $19.14 USDC left; total project spend ~$0.86 across ~9 full dossiers + probes
 
 ## Next actions (in order)
 
-1. **USER: review PR #11 with Copilot/CodeRabbit** → https://github.com/praneshnikhar/diligence-desk/pull/11 → merge (closes #9).
-2. Deploy to Vercel (issue #3): hobby tier, `TELEGRAPH_EVM_PRIVATE_KEY` + `TELEGRAPH_NODE_URL` as env
-   vars, then judge-facing README with evidence table + demo GIF.
+1. **USER: merge PR #14** (live URL stamp; closes issue #3 with the deploy evidence).
+2. Optional: `/mcps` in OpenCode → sign into the `vercel` MCP server (one-time OAuth).
+3. Issue #5 (Nov 14): batch-verify all receipts on the dashboard, screenshot the receipt
+   ledger with ✓ marks, save one printed PDF dossier, post integration evidence to the
+   hackathon organizers.
+4. Issue #7: demo video script — (a) paste company → Run → 21s → CLEAR with receipts,
+   (b) Tornado Cash BLOCK story (delisting + fraud 75%), (c) receipt ledger verify-all,
+   (d) print/PDF export. Then 5 commercial answers + submission.
 3. UI polish: badge on each step showing `route: direct:slug` vs `router` (data already in ledger).
 4. Nov 14 milestone evidence pack (issue #5): screenshots + receipt links + PDF export of a dossier.
 5. Demo video + 5 commercial answers + submission (issue #7) — before 1 Dec 23:59 UTC.
