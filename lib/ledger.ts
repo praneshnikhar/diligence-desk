@@ -13,6 +13,7 @@ export type LedgerEntry = {
   signalHash?: string;
   receipt?: TelegraphReceipt;
   error?: string;
+  attempts?: number; // routing retries used (1 = first ask succeeded)
 };
 
 export type Ledger = {

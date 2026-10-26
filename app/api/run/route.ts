@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MISSIONS, Mission } from "@/lib/intents";
 import { LIMITS, assertCanProceed } from "@/lib/limits";
-import { telegraphAsk, ENGINE_URL } from "@/lib/telegraph";
+import { telegraphAskWithRetry, ENGINE_URL } from "@/lib/telegraph";
 import { newLedger, addToLedger, ledgerSummary, Ledger } from "@/lib/ledger";
 import { assessStep, summarize, VERDICT_DISCLAIMER } from "@/lib/verdict";
 import { privateKeyToAccount } from "viem/accounts";
@@ -55,9 +55,9 @@ export async function POST(req: NextRequest) {
     plan.map(async (step) => {
       assertCanProceed(ledger.totalCalls, ledger.totalSpentUsd); // throw if over budget
       const query = step.build(input);
-      const call = await telegraphAsk(query);
+      const { call, attempts } = await telegraphAskWithRetry(query, step.intent);
       if (call.error) {
-        addToLedger(ledger, { key: step.key, intent: step.intent, error: call.error });
+        addToLedger(ledger, { key: step.key, intent: step.intent, error: call.error, attempts });
         return { step, call, assessed: null, skippedReason: undefined as string | undefined };
       }
       // Spending guard after the fact (a paid call returned): verify within limits.
@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         durationMs: call.durationMs,
         signalHash: call.signalHash,
         receipt: call.receipt,
+        attempts,
       });
       return { step, call, assessed, skippedReason: undefined as string | undefined };
     })

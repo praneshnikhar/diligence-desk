@@ -49,21 +49,16 @@ async function getPaidFetch(): Promise<PaidFetch> {
     );
   }
   try {
-    // x402 v2 signer API. The two documented call shapes differ between doc versions,
-    // so try the signature-bearing form first and fall back.
-    const [{ wrapFetchWithPayment }, { createSigner }] = await Promise.all([
+    // x402 v2 client API: x402Client.register(network, ExactEvmScheme(toClientEvmSigner(viemClients)))
+    const [{ wrapFetchWithPayment, x402Client }, { ExactEvmScheme, toClientEvmSigner }] = await Promise.all([
       import("@x402/fetch"),
       import("@x402/evm"),
     ]);
-    let signer: unknown;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      signer = await (createSigner as any)("eip155:84532", key);
-    } catch {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      signer = await (createSigner as any)(key);
-    }
-    cachedPaidFetch = wrapFetchWithPayment(globalThis.fetch, signer as never) as PaidFetch;
+    const [{ privateKeyToAccount }] = await Promise.all([import("viem/accounts")]);
+    const account = privateKeyToAccount(key as `0x${string}`);
+    const evmSigner = toClientEvmSigner(account as never);
+    const client = new x402Client().register("eip155:84532", new ExactEvmScheme(evmSigner as never));
+    cachedPaidFetch = wrapFetchWithPayment(globalThis.fetch.bind(globalThis), client as never) as PaidFetch;
     return cachedPaidFetch;
   } catch (err) {
     throw new Error(`x402 client init failed: ${(err as Error).message}`);
@@ -109,8 +104,11 @@ export async function telegraphAsk(query: string): Promise<TelegraphCall> {
       receipt,
     };
   }
+  // Some miners return their own envelope nested inside the node's — unwrap when present.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nested = d?.result && typeof d.result === "object" && "result" in d.result ? d.result.result : d?.result;
   return {
-    result: d?.result,
+    result: nested,
     intent: d?.intent,
     minerId: d?.miner_id,
     minerName: d?.miner_name,
@@ -122,6 +120,34 @@ export async function telegraphAsk(query: string): Promise<TelegraphCall> {
     httpStatus: res.status,
     raw: data,
   };
+}
+
+/** Retry once with an intent hint when routing fails — the Engine's LLM router needs phrasing cues. */
+const INTENT_HINTS: Record<string, string> = {
+  CORPORATE_REGISTRY_LOOKUP:
+    "Route by intent: names a company and asks for its official national corporate register record.",
+  SANCTIONS_SCREENING_MATCH:
+    "Route by intent: a person, company or wallet screened against OFAC, EU or UN sanctions lists.",
+  REGULATORY_FILING_MONITOR:
+    "Route by intent: queries statutory regulatory filings and financial oversight disclosures.",
+  WEB_SEARCH: "Route by intent: needs live web search results.",
+  FACT_CHECK: "Route by intent: fact-checks a specific claim with evidence.",
+};
+
+export async function telegraphAskWithRetry(
+  query: string,
+  intent: string
+): Promise<{ call: TelegraphCall; attempts: number }> {
+  const call = await telegraphAsk(query);
+  if (call.error && !call.signalHash) {
+    const hint = INTENT_HINTS[intent] ?? "";
+    if (hint) {
+      const retry = await telegraphAsk(`${query}\n\n(${hint})`);
+      if (!retry.error) return { call: retry, attempts: 2 };
+      return { call: retry, attempts: 2 }; // keep the second failure for the ledger
+    }
+  }
+  return { call, attempts: 1 };
 }
 
 /** Free lookup of any past call by its signal hash. */

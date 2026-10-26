@@ -23,9 +23,13 @@ if (!health) process.exit(1);
 const query = 'Screen the company "OpenAI" against OFAC SDN, EU consolidated and UN consolidated financial sanctions lists. Report exact and fuzzy matches with scores and sources. If there are no hits say so explicitly.';
 console.log("\nquery :", query.slice(0, 80) + "…");
 
-const { wrapFetchWithPayment } = await import("@x402/fetch");
-const { createSigner } = await import("@x402/evm");
-const fetchWithPayment = wrapFetchWithPayment(fetch, await createSigner("eip155:84532", key));
+const { wrapFetchWithPayment, x402Client } = await import("@x402/fetch");
+const { ExactEvmScheme, toClientEvmSigner } = await import("@x402/evm");
+const { privateKeyToAccount } = await import("viem/accounts");
+const account = privateKeyToAccount(key);
+const evmSigner = toClientEvmSigner(account);
+const x402 = new x402Client().register("eip155:84532", new ExactEvmScheme(evmSigner));
+const fetchWithPayment = wrapFetchWithPayment(fetch, x402);
 
 const res = await fetchWithPayment(`${ENGINE}/v1/ask`, {
   method: "POST",
