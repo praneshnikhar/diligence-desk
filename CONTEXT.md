@@ -25,7 +25,7 @@ and one receipt per claim.
 | Budget | **$0 real money.** x402 exact only (no gas needed), testnet USDC from Circle faucet |
 | Spending cap | $0.25 per run, 12 calls max, enforced in `lib/limits.ts` |
 | Payments | x402 exact scheme → PayAI facilitator, aimed at `0x5a2324aA...8ff8` (Diamond, read fresh from 402 `accepts[].payTo` — never hardcode) |
-| Repo | Private GitHub repo `praneshnikhar/diligence-desk` |
+| Repo | Public GitHub repo `praneshnikhar/diligence-desk` |
 | Node version | v24 installed (needs ≥ 20; `@x402/*` uses WebCrypto) |
 
 ## The agent flow (Legal primary)
@@ -49,13 +49,14 @@ and one receipt per claim.
 **Exchange** adds: `SMART_CONTRACT_AUDIT`, `TOKEN_HOLDER_COUNT`, `SOCIAL_BOT_DETECTION`, `ONCHAIN_METRIC_VERIFY` (token contract address in, listing risk memo out).
 **Stablecoin** reuses sanctions+registry and adds `FRAUD_RISK`, producing a **payment-attached compliance proof object** (the machine-readable Travel Rule thing).
 
-## Status (updated 27 Oct 2026 — deployed, all missions live)
+## Status (updated 1 Nov 2026 — public release)
 
-- [x] All 5 PRs merged (#8 Legal, #10 Exchange+Stablecoin, #11 FactWire, #12 dashboard, #13 README)
+- [x] All five feature PRs merged (#8 Legal, #10 Exchange+Stablecoin, #11 FactWire, #12 dashboard, #13 README)
 - [x] **Deployed to Vercel production: https://diligence-desk-chi.vercel.app** (public, auth disabled, wallet API verified live)
 - [x] Vercel agent setup: CLI 65.3.1 global + vercel-plugin (30+ skills) + MCP in OpenCode config (user auth via /mcps pending)
 - [x] Next.js 15.5.4 → 15.5.28 (Vercel blocks vulnerable versions)
-- [ ] **PR #14 (this one): live-URL stamp in README + CONTEXT.md** ← user merges
+- [x] PR #14 merged — live URL, public-release README, repo description + topics
+- [x] Repository is **public**; no keys or `.env.local` are tracked
 - [ ] Nov 14 milestone evidence pack (issue #5): screenshots ✓ (docs/screenshots), receipts ✓ (evidence/), live URL ✓ — assemble PDF dossier export + receipt links into a submission post
 - [ ] Demo video + 5 commercial answers + submission pack (issue #7, due 1 Dec 23:59 UTC)
 - [ ] Re-run flagship demo ON/AFTER Nov 1 (event-period evidence matters for scoring)
@@ -63,18 +64,15 @@ and one receipt per claim.
 
 ## Next actions (in order)
 
-1. **USER: merge PR #14** (live URL stamp; closes issue #3 with the deploy evidence).
-2. Optional: `/mcps` in OpenCode → sign into the `vercel` MCP server (one-time OAuth).
-3. Issue #5 (Nov 14): batch-verify all receipts on the dashboard, screenshot the receipt
+1. Optional: `/mcps` in OpenCode → sign into the `vercel` MCP server (one-time OAuth).
+2. Issue #5 (Nov 14): batch-verify all receipts on the dashboard, screenshot the receipt
    ledger with ✓ marks, save one printed PDF dossier, post integration evidence to the
    hackathon organizers.
-4. Issue #7: demo video script — (a) paste company → Run → 21s → CLEAR with receipts,
-   (b) Tornado Cash BLOCK story (delisting + fraud 75%), (c) receipt ledger verify-all,
+3. Issue #7: demo video script — (a) paste company → Run → 21s → CLEAR with receipts,
+   (b) Tornado Cash BLOCK story (delisting + fraud 65%), (c) receipt ledger verify-all,
    (d) print/PDF export. Then 5 commercial answers + submission.
-3. UI polish: badge on each step showing `route: direct:slug` vs `router` (data already in ledger).
-4. Nov 14 milestone evidence pack (issue #5): screenshots + receipt links + PDF export of a dossier.
-5. Demo video + 5 commercial answers + submission (issue #7) — before 1 Dec 23:59 UTC.
-6. Re-run flagship demo ON/AFTER Nov 1 — evidence from the event period matters for scoring.
+4. UI polish: badge on each step showing `route: direct:slug` vs `router` (data already in ledger).
+5. Re-run flagship demo ON/AFTER Nov 1 — evidence from the event period matters for scoring.
 
 ## Session rules
 
@@ -106,7 +104,7 @@ and one receipt per claim.
 
 ## Pointers
 
-- Local project: `/Users/pranesh/coding2/diligence-desk` (git repo now; private GitHub repo)
+- Local project: `/Users/pranesh/coding2/diligence-desk` (git repo; public GitHub repo)
 - `.env.local` (gitignored): `TELEGRAPH_EVM_PRIVATE_KEY` — **kept constant across sessions** so
   the on-chain evidence trail stays on ONE judge-verifiable address.
 - Hackathon docs: docs.telegraphprotocol.com (pages support `.md` tail)
